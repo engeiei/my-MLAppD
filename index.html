@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teachable Machine App</title>
+
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest/dist/tf.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@latest/dist/teachablemachine-image.min.js"></script>
+
+    <style>
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background: #f5f5f5;
+        }
+
+        /* ===== Tab Menu ===== */
+        .tab-menu {
+            display: flex;
+            justify-content: center;
+            background: #222;
+        }
+
+        .tab-menu button {
+            flex: 1;
+            padding: 15px;
+            border: none;
+            background: none;
+            color: white;
+            font-size: 16px;
+            cursor: pointer;
+        }
+
+        .tab-menu button.active {
+            background: #4CAF50;
+        }
+
+        /* ===== Page Content ===== */
+        .page {
+            display: none;
+            min-height: calc(100vh - 50px);
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .page.active {
+            display: flex;
+        }
+
+        .card {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            max-width: 400px;
+            width: 100%;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        }
+
+        /* ===== Upload Button ===== */
+        label.upload-btn {
+            display: inline-block;
+            padding: 10px 20px;
+            background: #4CAF50;
+            color: white;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-bottom: 15px;
+        }
+
+        img {
+            max-width: 100%;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+
+<!-- ===== Tab Menu ===== -->
+<div class="tab-menu">
+    <button class="active" onclick="openTab('home', this)">Home</button>
+    <button onclick="openTab('check', this)">Check</button>
+    <button onclick="openTab('about', this)">About Us</button>
+</div>
+
+<!-- ===== Home ===== -->
+<div id="home" class="page active">
+    <div class="card">
+        <h2>Home</h2>
+        <p>ยินดีต้อนรับสู่เว็บไซต์ตรวจสอบภาพด้วย AI</p>
+        <p>ใช้ Teachable Machine และ TensorFlow.js</p>
+    </div>
+</div>
+
+<!-- ===== Check ===== -->
+<div id="check" class="page">
+    <div class="card">
+        <h2>Check Image</h2>
+
+        <input type="file" id="imageUpload" accept="image/*" hidden onchange="loadImage(event)">
+        <label for="imageUpload" class="upload-btn">เลือกภาพ</label>
+
+        <img id="preview">
+        <div id="label-container"></div>
+    </div>
+</div>
+
+<!-- ===== About Us ===== -->
+<div id="about" class="page">
+    <div class="card">
+        <h2>About Us</h2>
+        <p>เว็บไซต์ตัวอย่างสำหรับการเรียนรู้</p>
+        <p>Image Classification ด้วย Teachable Machine</p>
+        <p>พัฒนาเพื่อการศึกษา 💙</p>
+    </div>
+</div>
+
+<script>
+    /* ===== Tab Control ===== */
+    function openTab(tabId, btn) {
+        document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+        document.querySelectorAll('.tab-menu button').forEach(b => b.classList.remove('active'));
+
+        document.getElementById(tabId).classList.add('active');
+        btn.classList.add('active');
+    }
+
+    /* ===== Teachable Machine ===== */
+    const URL = "https://teachablemachine.withgoogle.com/models/2QE2vp077/";
+    let model;
+
+    window.onload = async function () {
+        const modelURL = URL + "model.json";
+        const metadataURL = URL + "metadata.json";
+        model = await tmImage.load(modelURL, metadataURL);
+    };
+
+    function loadImage(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = function () {
+            const img = document.getElementById("preview");
+            img.src = reader.result;
+
+            img.onload = async function () {
+                const prediction = await model.predict(img);
+
+                let best = prediction[0];
+                for (let i = 1; i < prediction.length; i++) {
+                    if (prediction[i].probability > best.probability) {
+                        best = prediction[i];
+                    }
+                }
+
+                document.getElementById("label-container").innerHTML = `
+                    <strong>${best.className}</strong><br>
+                    ความน่าจะเป็น ${(best.probability * 100).toFixed(2)}%
+                `;
+            };
+        };
+        reader.readAsDataURL(file);
+    }
+</script>
+
+</body>
+</html>
